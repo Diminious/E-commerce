@@ -14,8 +14,8 @@ CREATE TABLE items (
 
 CREATE TABLE users (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    first_name varchar(20),
-    last_name varchar(20),
+    username varchar(20) UNIQUE,
+    password varchar(20),
     email varchar UNIQUE
 );
 
