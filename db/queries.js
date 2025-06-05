@@ -76,17 +76,56 @@ export const deleteUser = (req, res) => {
 }
 
 export const getItems = (req, res) => {
-    db.any('SELECT * FROM items ORDER BY id ASC')
+    //checks for any query
+    if(!req.query) {
+        db.any('SELECT name, description, price FROM items ORDER BY id ASC')
         .then(items => {
+            items.forEach(item => { item.price = '$' + item.price; });
             res.status(200).json(items);
         })
         .catch(error => {
             console.error('Error fetching items:', error);
             res.status(500).send('Internal Server Error');
         });
+    } else if (req.query.category) {
+        const { category } = req.query;
+        db.any('SELECT items.name, items.description, items.price FROM items JOIN categories ON items.category_id = categories.id WHERE categories.name = $1', [category])
+            .then(items => {
+                if (items.length > 0) {
+                    items.forEach(item => { item.price = '$' + item.price; });
+                    res.status(200).json(items);
+                } else {
+                    res.status(404).send(`No items found in category: ${category}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching items by category:', error);
+                res.status(500).send('Internal Server Error');
+            });
+    }  else if (req.query.price) {
+        const { price, higher } = req.query;
+        console.log('Price:', price, 'Higher:', higher);
+
+        db.any(`SELECT items.name, items.description, items.price, categories.name as category FROM items JOIN categories ON items.category_id = categories.id WHERE items.price ${higher === 'true' ? '>=' : '<='} $1`, [price])
+            .then(items => {
+                console.log(items.length);
+                if (items.length > 0) {
+                    items.forEach(item => { item.price = '$' + item.price; });
+                    res.status(200).json(items);
+                } else {
+                    res.status(404).send(`No items found ${higher === 'true' ? 'over' : 'under'}: $${price}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching items by category:', error);
+                res.status(500).send('Internal Server Error');
+            });
+    }
+
+    
 }
 
-const getItemById = (req, res) => {
+export const getItemById = (req, res) => {
     const id = parseInt(req.params.id);
     db.oneOrNone('SELECT * FROM items WHERE id = $1', [id])
         .then(item => {
@@ -102,7 +141,7 @@ const getItemById = (req, res) => {
         });
 }
 
-const getItemsByCategory = (req, res) => {
+export const getItemsByCategory = (req, res) => {
     const { category } = req.query;
     db.any('SELECT * FROM items WHERE category = $1 ORDER BY id ASC', [category])
         .then(items => {
