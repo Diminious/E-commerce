@@ -1,20 +1,33 @@
-const { Pool, Client } = require('pg');
+// const { Pool, Client } = require('pg');
+import pgPromise from 'pg-promise';
 
-const pool = new Pool({
-    user: 'postgres',
+const pgp = pgPromise({});
+
+const db = pgp({
     host: 'localhost',
+    port: 5432,
     database: 'e-commerce',
-    password: 'postgres',
-    port: '5432'
-});
+    user: 'postgres',
+    password: 'postgres'
+})
 
-const query = (text, params, callback) => {
-    const start = Date.now();
-    const res = pool.query(text, params, callback);
-    const duration = Date.now() - start;
-    console.log('executed query', { text, duration });
+export default db;
+
+// const pool = new Pool({
+//     user: 'postgres',
+//     host: 'localhost',
+//     database: 'e-commerce',
+//     password: 'postgres',
+//     port: '5432'
+// });
+
+// const query = (text, params, callback) => {
+//     const start = Date.now();
+//     const res = pool.query(text, params, callback);
+//     const duration = Date.now() - start;
+//     console.log('executed query', { text, duration });
     
-    return res;
-}
+//     return res;
+// }
 
-module.exports = {query};
+// module.exports = {query};
