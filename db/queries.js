@@ -272,10 +272,12 @@ export const getItemsInUserCart = (req, res, next) => {
     }
     // Fetch items in the user's cart
     //SELECT cart_items.id, cart_id, items.name, quantity FROM cart_items JOIN items ON cart_items.item_id = items.id WHERE cart_id = 1;
-    db.any('SELECT items.id AS items_id, cart_id, items.name, quantity FROM cart_items JOIN items ON cart_items.item_id = items.id WHERE cart_id = $1', [cart.id])
+    db.any('SELECT items.id AS items_id, cart_id, items.name, items.price, quantity FROM cart_items JOIN items ON cart_items.item_id = items.id WHERE cart_id = $1', [cart.id])
         .then(cartItems => {
             if (cartItems.length > 0) {
-                res.status(200).json(cartItems);
+                req.cartItems = cartItems;
+                return next();
+                // res.status(200).json(cartItems);
             } else {
                 res.status(404).send('No items found in your cart');
             }
@@ -438,25 +440,121 @@ export const deleteLoggedInUserCart = (req, res) => {
             console.error('Error fetching user cart:', error);
             return res.status(500).send('Internal Server Error');
         });
-
-    // db.task('deleteUserCart', async t => {
-    //     const cart = await t.oneOrNone('SELECT * FROM carts WHERE user_id = $1', [user.id]);
-    //     if (!cart) {
-    //         return res.status(404).send('Cart not found for user');
-    //     }
-    //     return t.none('DELETE FROM carts WHERE user_id = $1', [user.id]);
-    //     })
-    //     .then(() => {
-    //         res.status(200).send(`Cart for user with ID: ${user.id} deleted`);
-    //     })
-    //     .catch(error => {
-    //         console.error('Error deleting user cart:', error);
-    //         res.status(500).send('Internal Server Error');
-    //     }); 
 }
 
-const checkoutCart = (req, res) => {
-    const { user, cart } = req;
+export const checkoutCart = async (req, res) => {
+    const { user, cartItems } = req;
 
-    
+    if (!user || !cartItems) {
+        return res.status(401).send('User, Cart or Items are missing.');
+    }
+
+    // payment details would be handled here
+    const totalPrice = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+    // console.log("Checkout: ", cart, cartItems);
+    // console.log('Total Price:', totalPrice);
+
+    await db.one("INSERT INTO orders(total, status, user_id) VALUES ($1, 'PAID', $2) RETURNING *", [totalPrice, user.id])
+        .then(order => {
+            // Insert each item in the cart into the order_items table
+            cartItems.forEach(item => {
+                db.none('INSERT INTO order_items(order_id, item_id, quantity, price, name) VALUES ($1, $2, $3, $4, $5)', [order.id, item.items_id, item.quantity, item.price, item.name])
+                    .then(() => {
+                        console.log(`Item ${item.name} added to order ${order.id}`);
+                    })
+                    .catch(error => {
+                        console.error(`Error adding item ${item.name} to order:`, error);
+                    });
+            });
+        })
+        .catch(error => {
+            console.error('Error creating order:', error);
+            return res.status(500).send('Internal Server Error');
+        });
+
+    db.none('DELETE FROM carts WHERE user_id = $1', [user.id])
+        .then(() => {
+            res.send('Checkout successful, cart has been cleared');
+        })
+        .catch(error => {
+            console.error('Error clearing cart after checkout:', error);
+            res.status(500).send('Internal Server Error');
+        });
+
+}
+
+export const getOrders = (req, res) => {
+    db.any('SELECT * FROM orders ORDER BY id ASC')
+        .then(orders => {
+            if (orders.length > 0) {
+                orders.forEach(order => {
+                    order.total = "$" + order.total;
+                });
+                res.status(200).json(orders);
+            } else {
+                res.status(404).send('No orders found');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching orders:', error);
+            res.status(500).send('Internal Server Error');
+        });
+}
+
+export const getOrderById = (req, res) => {
+    const id = parseInt(req.params.id);
+    db.any('SELECT * FROM order_items WHERE order_id = $1', [id])
+        .then(items => {
+            if (items) {
+                items.forEach(item => {
+                    item.price = "$" + item.price;
+                });
+                res.status(200).json(items);
+            } else {
+                res.status(404).send('Order not found');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching order:', error);
+            res.status(500).send('Internal Server Error');
+        });
+}
+
+export const getUserOrders = (req, res) => {
+    const { user } = req;
+
+    db.any('SELECT * FROM orders WHERE user_id = $1 ORDER BY modified DESC', [user.id])
+        .then(orders => {
+            if (orders.length > 0) {
+                res.status(200).json(orders);
+            } else {
+                res.status(404).send('No orders found for user');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching user orders:', error);
+            res.status(500).send('Internal Server Error');
+        });
+}
+
+export const getUserOrderItems = (req, res) => {
+    //const { user, orders } = req;
+    const orderID = req.params.id
+
+    db.any('SELECT * FROM order_items WHERE order_id = $1 ORDER BY id ASC', [orderID])
+        .then(items => {
+            if (items.length > 0) {
+                items.forEach(item => {
+                    item.price = "$" + item.price;
+                });
+                res.status(200).json(items);
+            } else {
+                res.status(404).send('No items found in order.');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching user orders:', error);
+            res.status(500).send('Internal Server Error');
+        });
 }
