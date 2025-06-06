@@ -15,7 +15,7 @@ CREATE TABLE items (
 CREATE TABLE users (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     email varchar(20) UNIQUE,
-    password varchar(20),
+    password varchar(60) NOT NULL,
     firstname varchar(20) NOT NULL,
     lastname varchar(20)
 );
@@ -24,7 +24,7 @@ CREATE TABLE orders (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     total decimal(8, 2),
     status varchar(16),
-    modified date,
+    modified timestamp DEFAULT NOW(),
     user_id integer REFERENCES users(id)
 );
 
@@ -40,13 +40,13 @@ CREATE TABLE order_items (
 CREATE TABLE carts (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     user_id integer REFERENCES users(id),
-    modified date DEFAULT CURRENT_DATE,
-    created date DEFAULT CURRENT_DATE
+    modified timestamp DEFAULT NOW(),
+    created timestamp DEFAULT NOW()
 );
 
 CREATE TABLE cart_items (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    cart_id integer REFERENCES carts(id),
+    cart_id integer REFERENCES carts(id) ON DELETE CASCADE,
     item_id integer REFERENCES items(id),
     quantity integer
 );
@@ -97,3 +97,8 @@ INSERT INTO items (name, description, price, category_id) VALUES
 ('Razor', 'Shaving razor for men', 6.00, 9),
 ('Hand Soap', 'Antibacterial hand soap', 5.00, 9),
 ('Shampoo', 'Moisturizing shampoo', 7.00, 9);
+
+INSERT INTO items (name, description, price, category_id) VALUES
+('REDAPPLE', 'Fresh red apples', 1.20, 1) RETURNING *;
+
+DELETE FROM carts;

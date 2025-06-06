@@ -8,10 +8,9 @@ router.get('/auth/status', (req, res) => {
     if(!req.user) {
         return res.status(401).send('Not authorized.');
     }
-
-    console.log(req.user);
-
-    res.send(`Currently logged in as ${req.user.lastname ? req.user.firstname + " " + req.user.lastname : req.user.firstname}.`);
+    
+    // console.log(req.user);
+    res.send(`Currently logged in as ${req.user.firstname}${req.user.lastname ? " " + req.user.lastname : ""}.`);
 });
 
 router.get('/auth/login', (req, res) => {
@@ -28,8 +27,8 @@ router.post('/auth/login', passport.authenticate('local', {
     // failureRedirect: './login',
     failureMessage: true
 }), (req, res) => {
-    console.log(req.user);
-    res.send(`Welcome ${req.user.firstname}!`);
+    // console.log(req.user);
+    res.send(`Welcome ${req.user.firstname}${req.user.lastname ? " " + req.user.lastname : ""}!`);
 });
 
 router.post('/auth/logout', (req, res) => {

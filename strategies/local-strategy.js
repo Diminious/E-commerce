@@ -1,6 +1,7 @@
 import passport from "passport";
 import { Strategy } from "passport-local";
 import { findUserByEmail, findUserById } from "../db/queries.js";
+import { comparePassword } from "../utils/helpers.js";
 
 passport.serializeUser((user, done) => {
     //console.log(`Serializing user: ${user.email}`);
@@ -27,7 +28,7 @@ export default passport.use(
             console.log(findUser);
             
             //TODO hash password here
-            if(findUser.password !== password) throw new Error('Invalid password');
+            if(!comparePassword(password, findUser.password)) throw new Error('Invalid password');
 
             return done(null, findUser);
         } catch (error) {
