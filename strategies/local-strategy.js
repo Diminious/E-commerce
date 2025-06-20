@@ -27,8 +27,8 @@ export default passport.use(
 
             console.log(findUser);
             
-            //TODO hash password here
-            if(!comparePassword(password, findUser.password)) throw new Error('Invalid password');
+            // compares hashed password
+            if(!await comparePassword(password, findUser.password)) throw new Error('Invalid password');
 
             return done(null, findUser);
         } catch (error) {

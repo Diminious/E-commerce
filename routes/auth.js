@@ -9,22 +9,10 @@ router.get('/auth/status', (req, res) => {
         return res.status(401).send('Not authorized.');
     }
     
-    // console.log(req.user);
     res.send(`Currently logged in as ${req.user.firstname}${req.user.lastname ? " " + req.user.lastname : ""}.`);
 });
 
-router.get('/auth/login', (req, res) => {
-    if(req.session.messages) {
-        res.send(req.session.messages[req.session.messages.length - 1]);
-    } else {
-        console.log(req.session);
-        res.send('Login Page! TODO');
-    }
-});
-
 router.post('/auth/login', passport.authenticate('local', {
-    // successRedirect: './status',
-    // failureRedirect: './login',
     failureMessage: true
 }), (req, res) => {
     // console.log(req.user);
@@ -32,7 +20,7 @@ router.post('/auth/login', passport.authenticate('local', {
 });
 
 router.post('/auth/logout', (req, res) => {
-    if(!req.user) return res.status(401).send('Not authenticated.');
+    if(!req.user) return res.status(401).send('Not authorized.');
     req.logout((err) => {
         if (err) return res.sendStatus(400);
         res.status(200).send('Logged out successfully.');

@@ -7,17 +7,50 @@ import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import './strategies/local-strategy.js'; // Import local strategy for Passport.js
 import connectPgSimple from 'connect-pg-simple';
+import swaggerJSDoc from 'swagger-jsdoc';
+import swaggerUI from 'swagger-ui-express';
+import yaml from 'js-yaml';
+import fs from 'fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import routes from './routes/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const pgStore = connectPgSimple(session);
 
-// Passport.js setup
-// const initialisePassport = require('./configs/passport-config');
-// initialisePassport(passport);
+//loads document swagger.yml
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename);
+const swaggerDocument = yaml.load(fs.readFileSync(path.resolve(__dirname, './swagger.yml'), 'utf8'));
 
+const swaggerDefinition = {
+    info: {
+        title: "Node Swagger API",
+        version: "1.0.0",
+        description: "How to use the E-Commerce RESTful API"
+    },
+    host: "localhost:3000",
+    basePath: "/"
+}
 
+const swaggerSpec = swaggerJSDoc({
+    swaggerDefinition: {
+        servers: [
+            {
+                url: 'http://localhost:3000/'
+            }
+        ],
+        info: {
+            title: "E-Commerce API Documentation",
+            version: "0.9.0",
+            description: "Simple E-Commerce API application made with Express and PostgreSQL."
+        }
+    },
+    apis: ['./routes/*.js']
+});
+
+app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDocument))
 // bodyParser configuration
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
